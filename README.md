@@ -1,10 +1,10 @@
-# 📉 Customer Churn Analysis — SQL Database to Business Insights
+#  Customer Churn Analysis — SQL Database to Business Insights
 
 An end-to-end churn analysis built in Python, extracting data from a relational SQLite database, resolving a real data quality bug, and calculating 13+ business KPIs to diagnose why customers leave and when.
 
 ---
 
-## 🎯 Project Objective
+##  Project Objective
 
 To move beyond a single headline "churn rate" number and answer the questions a retention team actually needs answered:
 - **How much** revenue is at risk from churned customers?
@@ -14,7 +14,7 @@ To move beyond a single headline "churn rate" number and answer the questions a 
 
 ---
 
-## 🗄️ Dataset
+##  Dataset
 
 **Source:** SQLite relational database (`customer_churn.db`) containing 3 linked tables
 
@@ -28,7 +28,7 @@ Unlike a pre-merged single CSV, this project required extracting and joining **t
 
 ---
 
-## 🔑 Key Findings
+##  Key Findings
 
 1. **28.84% of customers have churned**, against a 71.16% retention rate — establishing the baseline scale of the problem.
 2. **Basic plan customers churn at the highest rate (30.97%)**, notably higher than Premium (27.61%), suggesting price-sensitive customers on entry-level plans are the highest-risk segment.
@@ -39,7 +39,7 @@ Unlike a pre-merged single CSV, this project required extracting and joining **t
 
 ---
 
-## 🛠️ Skills & Techniques Demonstrated
+##  Skills & Techniques Demonstrated
 
 | Category | Techniques used |
 |---|---|
@@ -53,7 +53,7 @@ Unlike a pre-merged single CSV, this project required extracting and joining **t
 
 ---
 
-## 📊 Sample Finding — Ordinal Encoding Matters
+##  Sample Finding — Ordinal Encoding Matters
 
 This project deliberately demonstrates a subtle but important statistics concept: **default alphabetical encoding of categorical variables can distort correlation analysis.**
 
@@ -76,7 +76,7 @@ Both the incorrect and correct encoding heatmaps are included side-by-side in th
 
 ---
 
-## 🚀 How to Run This Project
+##  How to Run This Project
 
 1. Clone this repository
 2. Install dependencies: `pip install pandas numpy matplotlib seaborn`
@@ -86,7 +86,7 @@ Both the incorrect and correct encoding heatmaps are included side-by-side in th
 
 ---
 
-## 💡 What I Learned
+##  What I Learned
 
 - How to extract and join data from a relational database rather than working from a single pre-merged file — including dynamically discovering table names and schemas.
 - How a subtle merge issue (duplicate records in a support ticket log) can silently inflate row counts after a join, and how to catch and resolve it with a documented sort-and-deduplicate approach.
@@ -96,12 +96,12 @@ Both the incorrect and correct encoding heatmaps are included side-by-side in th
 
 ---
 
-## 🙋 About
+##  About
 
-Built by **[Your Name]** as part of a data analyst portfolio project.
+Built by **[Atharv Dhole]** as part of a data analyst portfolio project.
 
-- 🔗 LinkedIn: [your-linkedin-url]
-- 📧 Email: your@email.com
+- 🔗 LinkedIn: [https://www.linkedin.com/in/atharv-dhole/]
+- 📧 Email: atharvdhole22@email.com
 
 ---
 
