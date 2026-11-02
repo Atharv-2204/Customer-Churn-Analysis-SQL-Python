@@ -101,8 +101,6 @@ Both the incorrect and correct encoding heatmaps are included side-by-side in th
 Built by **[Atharv Dhole]** as part of a data analyst portfolio project.
 
 - 🔗 LinkedIn: [https://www.linkedin.com/in/atharv-dhole/]
-- 📧 Email: atharvdhole22@email.com
+- 📧 Email: atharvdhole22@gmail.com
 
 ---
-
-*If you found this useful, please ⭐ star the repository!*
