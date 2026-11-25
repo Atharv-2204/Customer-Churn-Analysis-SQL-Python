@@ -1,64 +1,84 @@
-#  Customer Churn Analysis — SQL Database to Business Insights
+# Customer Churn Analysis: From a SQLite Database to Retention Insights
 
-An end-to-end churn analysis built in Python, extracting data from a relational SQLite database, resolving a real data quality bug, and calculating 13+ business KPIs to diagnose why customers leave and when.
+A Python analysis of customer churn for a subscription service. The data comes from a three-table SQLite database of 5,250 customers. I cleaned and merged it in a Jupyter notebook, calculated seven KPIs, broke churn down by plan, state and cancellation reason, and tested whether support escalations relate to churn.
 
----
+## Contents
 
-##  Project Objective
+- [Questions](#questions)
+- [Dataset](#dataset)
+- [Method](#method)
+- [Results](#results)
+- [Encoding for the correlation heatmap](#encoding-for-the-correlation-heatmap)
+- [Notes and limitations](#notes-and-limitations)
+- [Project files](#project-files)
+- [How to run](#how-to-run)
+- [What I learned](#what-i-learned)
+- [Contact](#contact)
 
-To move beyond a single headline "churn rate" number and answer the questions a retention team actually needs answered:
-- **How much** revenue is at risk from churned customers?
-- **Which** customer segments (plan type, tenure, support history) churn most?
-- **When** in a customer's lifecycle are they most likely to leave?
-- **Why** do customers cancel — and does contacting support actually predict churn?
+## Questions
 
----
+- How many customers churn, and how much monthly revenue goes with them?
+- Which plans and states churn the most?
+- Why do customers cancel?
+- Do support escalations relate to churn?
 
-##  Dataset
+## Dataset
 
-**Source:** SQLite relational database (`customer_churn.db`) containing 3 linked tables
+The source is `customer_churn.db`, a SQLite database with three linked tables. The customers are in eight Indian states.
 
-| Table | Contents |
-|---|---|
-| `db_customer` | Customer demographics — name, country, state, gender, date of birth, interests |
-| `db_subscription` | Subscription lifecycle — plan type, contract type, dates, monthly charges, churn score, cancellation reason |
-| `db_support` | Support interaction history — complaint dates, escalation flag, CSAT score |
+| Table | Rows | Columns |
+|---|---|---|
+| `db_customer` | 5,250 | customerid, name, country, state, gender, dob, interests, pincode |
+| `db_subscription` | 5,250 | customerid, subscription_start_date, subscription_type, renewal_date, plan_type, contract_type, cancellation_date, cancellation_reason, monthly_charges, cltv, churn_score |
+| `db_support` | 2,238 | customerid, complaint_date, escalations, csat_score, col_1, comment |
 
-Unlike a pre-merged single CSV, this project required extracting and joining **three separate relational tables** — a closer analogue to how real production data is structured.
+## Method
 
----
+The notebook lists the tables and checks their schemas with `PRAGMA table_info()`, loads all three into pandas, cleans them and merges them into one table with one row per customer.
 
-##  Key Findings
+Cleaning:
+- `db_customer`: renamed `name` to `customer_name`, dropped `interests` (946 of 5,250 filled) and `pincode` (empty), converted `dob` to a date, standardized gender (Men and Women became Male and Female), and filled the 734 missing countries from each customer's state.
+- `db_subscription`: converted the three date columns to dates and added a `churn_flag`, which is 1 when a cancellation date exists.
+- `db_support`: dropped `col_1` (empty) and `comment`, and converted `complaint_date` to a date.
 
-1. **28.84% of customers have churned**, against a 71.16% retention rate — establishing the baseline scale of the problem.
-2. **Basic plan customers churn at the highest rate (30.97%)**, notably higher than Premium (27.61%), suggesting price-sensitive customers on entry-level plans are the highest-risk segment.
-3. **$28,449.77 in monthly recurring revenue is at risk** from already-churned customers — quantifying the direct financial cost of churn.
-4. **Escalations do not meaningfully predict churn** (correlation ≈ -0.01, verified on the 1,756 customers who actually contacted support) — a counter-intuitive finding suggesting that customers who churn are not necessarily the ones who complain first. This points toward silent dissatisfaction or price/fit issues as more likely churn drivers than service friction.
-5. **Churn timing analysis by tenure bucket** reveals whether customers leave early (onboarding failure) or late (long-term dissatisfaction) — see the tenure chart in the notebook for the full breakdown.
-6. **Top cancellation reasons** were extracted directly from churned customers' stated reasons, turning the "how many churned" number into an actionable "why they churned" narrative.
+### Duplicate support records
 
----
-
-##  Skills & Techniques Demonstrated
-
-| Category | Techniques used |
-|---|---|
-| Data extraction | SQLite connection via `sqlite3`, dynamic table discovery, `PRAGMA table_info()` for schema inspection |
-| Data cleaning | Column renaming, missing value handling, data type correction, standardization across 3 tables |
-| Data quality debugging | Identified and resolved a duplicate-record bug (support table had 2,247 rows but only 1,758 unique customers) using sort + deduplication logic |
-| Feature engineering | Churn flag creation, complaint count aggregation, tenure calculation (day-level), churn risk bucketing from churn score |
-| Business metrics | Churn rate, retention rate, ARPU, revenue at risk, escalation rate, average complaints per user |
-| Statistical rigor | Built and compared **incorrect (alphabetical) vs. correct (business-priority ordered)** categorical encoding to demonstrate the impact of encoding choice on correlation analysis |
-| Data visualization | Seaborn heatmaps, pairplots, catplots/FacetGrid, time-series trend charts, pivot tables |
-
----
-
-##  Sample Finding — Ordinal Encoding Matters
-
-This project deliberately demonstrates a subtle but important statistics concept: **default alphabetical encoding of categorical variables can distort correlation analysis.**
+`db_support` has 2,238 rows but only 1,756 distinct customers. Merging it as it was turned 5,250 customers into 5,732 rows. I counted each customer's complaints, then kept only the most recent complaint per customer:
 
 ```python
-# Correct method — encode by actual business priority, not alphabetical order
+df_db_support['complaint_count'] = df_db_support.groupby('customerid')['customerid'].transform('count')
+df_db_support = df_db_support.sort_values('complaint_date').drop_duplicates('customerid', keep='last')
+```
+
+After the fix the merged table has 5,250 rows again. One effect of this step: the escalation flag used later is the one from each customer's latest complaint.
+
+## Results
+
+| Metric | Value |
+|---|---|
+| Customers | 5,250 |
+| Churned | 1,514 (28.84%) |
+| Retention rate | 71.16% |
+| ARPU (average monthly charge) | 18.73 |
+| Revenue at risk | $28,449.77 per month |
+| Average tenure | 1,463 days |
+| Escalation rate | 18.72% of all customers |
+| Average complaints per customer | 0.43 |
+
+Findings:
+
+1. The monthly charges of churned customers add up to $28,449.77, about 29% of the 98,317 charged across all customers.
+2. Basic has the highest plan churn at 30.97% (1,240 customers), then Standard at 28.62% (2,257) and Premium at 27.61% (1,753). The spread is about 3 points. Basic accounts for 14% of monthly charges and Premium for 55%.
+3. Meghalaya has the highest state churn at 31.70% (814 customers), followed by Maharashtra at 30.53% (855). Rajasthan is the lowest at 27.08% (554). Delhi has the most customers, 1,077, at 27.76%.
+4. Of the 1,514 customers who cancelled, 526 (34.7%) switched to a competitor. Forgetting to cancel a trial accounts for 260 (17.2%), not enough content for 252 (16.6%), price for 241 (15.9%) and streaming quality for 235 (15.5%).
+5. Escalations show no relationship with churn. The correlation is -0.01 across the 1,756 customers who contacted support, 983 of whom (56%) had an escalation. Those 1,756 customers are a third of the 5,250.
+6. The number of customers who churn each month rises from 2019 to a peak of about 40 in mid 2024, then drops sharply from late 2024.
+
+## Encoding for the correlation heatmap
+
+Plan type, contract type, churn risk and escalations need numeric codes before they can go into a correlation heatmap. Pandas assigns codes alphabetically, which puts Premium ahead of Standard and breaks the Basic, Standard, Premium order. The notebook draws the heatmap twice, once with the default codes and once with codes that follow the business order:
+
+```python
 order_mapping = {
     'plan_type': ['Basic', 'Standard', 'Premium'],
     'contract_type': ['Monthly', 'Annual'],
@@ -72,35 +92,40 @@ for col, order in order_mapping.items():
     ).codes
 ```
 
-Both the incorrect and correct encoding heatmaps are included side-by-side in the notebook for direct comparison.
+`churn_risk` is built from `churn_score`: below 50 is low, 50 to 69 is med and 70 or above is high.
 
----
+## Notes and limitations
 
-##  How to Run This Project
+- The chart of churn rate by tenure bucket shows 100% for every bucket under 365 days. This comes from how tenure is defined. Active customers are measured up to the day the notebook runs, so all of them land in the 365+ bucket, and only customers who cancelled can appear in the shorter buckets. The chart does not show when customers leave, so it is left out of the findings. The average tenure of 1,463 days also depends on the run date.
+- Escalation status comes from each customer's latest complaint only, as described in the Method section.
+- The differences between plans and between states are a few percentage points. I did not test whether they are statistically significant.
 
-1. Clone this repository
-2. Install dependencies: `pip install pandas numpy matplotlib seaborn`
-3. Ensure `customer_churn.db` is in the project directory
-4. Open `churn_analysis.ipynb` in Jupyter Notebook or JupyterLab
-5. Run all cells in order
+## Project files
 
----
+```
+├── churn_analysis.ipynb      # full analysis
+├── customer_churn.db         # source database
+└── exported_churn_data.csv   # merged table, written when the notebook runs
+```
 
-##  What I Learned
+## How to run
 
-- How to extract and join data from a relational database rather than working from a single pre-merged file — including dynamically discovering table names and schemas.
-- How a subtle merge issue (duplicate records in a support ticket log) can silently inflate row counts after a join, and how to catch and resolve it with a documented sort-and-deduplicate approach.
-- Why encoding categorical variables alphabetically (versus by genuine business priority) can distort correlation results — and how to build both versions side-by-side to demonstrate the difference concretely.
-- The importance of validating a surprising result before accepting it: an initial near-zero escalation-churn correlation was investigated for a possible data bias (NaN handling), and confirmed as a genuine finding rather than an artifact once the bias was ruled out.
-- How to extend a churn rate number into a business narrative — tenure-based churn timing and cancellation reason breakdowns turn "what happened" into "why it happened and when."
+1. Clone this repository.
+2. Install the dependencies: `pip install pandas numpy matplotlib seaborn`
+3. Keep `customer_churn.db` in the same folder as the notebook.
+4. Open `churn_analysis.ipynb` in Jupyter Notebook or JupyterLab.
+5. Run all cells in order.
 
----
+## What I learned
 
-##  About
+- Reading related tables from a database and joining them in pandas. A support table with several rows per customer quietly multiplied the merged table from 5,250 to 5,732 rows, and I only noticed because the row count did not match the customer count.
+- An alphabetical numeric code can distort a correlation. Building the heatmap with both encodings made the difference easy to see.
+- A near-zero correlation needs a check before it is reported. I made sure customers who never contacted support were left out of the escalation correlation instead of being counted as "no escalation".
+- A list of cancellation reasons says more about why customers leave than any plan or state breakdown. Price is the reason for 15.9% of cancellations, and switching to a competitor for 34.7%.
 
-Built by **[Atharv Dhole]** as part of a data analyst portfolio project.
+## Contact
 
-- 🔗 LinkedIn: https://www.linkedin.com/in/atharv-dhole/
-- 📧 Email: atharvdhole22@gmail.com
+Atharv Dhole
 
----
+- LinkedIn: https://www.linkedin.com/in/atharv-dhole/
+- Email: atharvdhole22@gmail.com
